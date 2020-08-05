@@ -1,0 +1,57 @@
+<!doctype html>
+  <html>
+    <head>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.css" />
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.js"></script>
+    </head>
+    <body>
+      <form>
+        <label for="identifier">Session Identifier:</label>
+        <input type="text" id="identifier" name="identifier"/>
+        <input type="submit" value="Join"/>
+      </form>
+      <div id="terminal"></div>
+      <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const ID = urlParams.get('identifier');
+        if(ID === "" || ID === null) {
+          alert("Bitte geben sie einen Identifier ein.");
+        } else {
+          var term = new Terminal();
+          term.open(document.getElementById('terminal'));
+          const id = window.crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
+          const client = new Paho.Client("broker.hivemq.com", 8000, id);
+
+          function onMessageArrived(identifier) {
+            return (msg) => {
+              const sub = msg.topic.split("/")[1];
+              switch (sub) {
+                case "data":
+                  term.write(msg.payloadString);
+                  break;
+                case "resize":
+                  size = msg.payloadString.split('|');
+                  term.resize(Number(size[0]), Number(size[1]));
+                  break;
+                default:
+                  console.error("unhandled event:");
+              }
+              console.log(msg);
+            }
+          }
+
+          function onConnected() {
+            for (const sub of ["data", "resize"]) {
+              client.subscribe(`${ID}/${sub}`);
+            }
+            client.publish(`${ID}/new`, "ping");
+          }
+
+          client.onConnected = onConnected;
+          client.onMessageArrived = onMessageArrived(ID);
+          client.connect();
+        }
+      </script>
+    </body>
+  </html>
