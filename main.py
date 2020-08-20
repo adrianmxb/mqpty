@@ -12,9 +12,11 @@ grows = -1
 gcols = -1
 history = []
 
+
 def generate_on_connect(identifier):
-    def on_connect(client, userdata, flags, rc, reason = None, properties = None):
+    def on_connect(client, userdata, flags, rc, reason=None, properties=None):
         client.subscribe("%s/new" % identifier)
+
     return on_connect
 
 
@@ -37,6 +39,12 @@ def connect(identifier):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("please specify the terminal application you want to stream as parameter.")
+        print("usage: python3 main.py [command]")
+        print("example: python3 main.py bash")
+        sys.exit(0)
+
     identifier = secrets.token_urlsafe(32)
     client = connect(identifier)
     print("~~~~~ SESSION LIVE. BE CAREFUL WHAT YOU TYPE IN HERE! ~~~~~")
@@ -50,18 +58,24 @@ if __name__ == '__main__':
 
 
     def OnStdin(ev):
-        if ev & select.EPOLLIN:
+        if ev & select.POLLIN:
             terminal.CopyData(in_fd, child_fd)
+        return True
 
 
     def OnChild(ev):
-        if ev & select.EPOLLIN:
+        if ev & select.POLLHUP:
+            msg = client.publish("%s/close" % identifier)
+            msg.wait_for_publish()
+            return False
+
+        if ev & select.POLLIN:
             data = terminal.CopyData(child_fd, out_fd)
             client.publish("%s/data" % identifier, data)
             global history
             history.append(data)
-        elif ev & select.EPOLLHUP:
-            sys.exit(0)
+
+        return True
 
 
     def OnResize(rows, cols):
@@ -76,7 +90,8 @@ if __name__ == '__main__':
         terminal.SetRaw(in_fd)
         terminal.LinkWindowSizes(in_fd, child_fd, OnResize)
 
-    subprocess.Popen(["python3", "-m", "http.server", "4242", "--directory", "public"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.Popen(["python3", "-m", "http.server", "4242", "--directory", "public"], stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL)
 
     client.loop_start()
 
@@ -86,4 +101,3 @@ if __name__ == '__main__':
     })
 
     client.loop_stop()
-    print("You successfully quit your mqpty session.")

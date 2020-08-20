@@ -20,9 +20,10 @@ def Spawn(argv):
         try:
             os.execvp(argv[0], argv)
         except OSError as e:
-            print(e)
+            print("error" + e)
             sys.exit(1)
     return pid, fd
+
 
 def CopyData(frm, to):
     data = ''
@@ -34,23 +35,30 @@ def CopyData(frm, to):
 
     return data
 
-def Wait(dispatchers):
-    epoll = select.epoll()
-    for fd in dispatchers.keys():
-        epoll.register(fd, select.EPOLLIN)
 
+def Wait(dispatchers):
+    poll = select.poll()
+    for fd in dispatchers.keys():
+        poll.register(fd, select.POLLIN)
     while True:
         try:
-            for fd, ev in epoll.poll():
-                dispatchers[fd](ev)
+            for fd, ev in poll.poll():
+                if not dispatchers[fd](ev):
+                    return
         except (IOError, select.error) as err:
             if err != errno.EINTR:
                 raise
 
+
+def Reset(fd, attr):
+    termios.tcsetattr(fd, termios.TCSAFLUSH, attr)
+    print("You successfully quit your mqpty session.")
+
+
 def SetRaw(fd):
     attr = termios.tcgetattr(fd)
-    #restore state when the process dies so the terminal isnt messed up
-    atexit.register(lambda: termios.tcsetattr(fd, termios.TCSAFLUSH, attr))
+    # restore state when the process dies so the terminal isnt messed up
+    atexit.register(lambda: Reset(fd, attr))
     tty.setraw(fd)
 
 

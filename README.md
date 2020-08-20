@@ -3,7 +3,8 @@
 
 **Guide:**
 1. pip install -r requirements.txt
-2. python3 main.py [YOUR DESIRED COMMAND]
+2. python3 main.py [command]
 
 **Example:**
-python3 main.py bash
+* Start Session: python3 main.py bash  
+* Stop Session: CTRL+D

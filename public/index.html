@@ -34,15 +34,19 @@
                   size = msg.payloadString.split('|');
                   term.resize(Number(size[0]), Number(size[1]));
                   break;
+                case "close":
+                  term.writeln("connection to remote terminal closed");
+                  break;
                 default:
                   console.error("unhandled event:");
+                  console.error("event: " + sub);
               }
               console.log(msg);
             }
           }
 
           function onConnected() {
-            for (const sub of ["data", "resize"]) {
+            for (const sub of ["data", "resize", "close"]) {
               client.subscribe(`${ID}/${sub}`);
             }
             client.publish(`${ID}/new`, "ping");
