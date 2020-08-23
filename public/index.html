@@ -7,21 +7,41 @@
     </head>
     <body>
       <form>
+        <label for="host">MQTT Server:</label>
+        <input type="text" id="host" name="host" value="broker.hivemq.com"/>
+        <label for="port">MQTT Port:</label>
+        <input type="text" id="port" name="port" value="8000"/>
         <label for="identifier">Session Identifier:</label>
         <input type="text" id="identifier" name="identifier"/>
         <input type="submit" value="Join"/>
       </form>
+      <span id="clientInfo">Not connected.</span>
       <div id="terminal"></div>
       <script>
         const urlParams = new URLSearchParams(window.location.search);
         const ID = urlParams.get('identifier');
-        if(ID === "" || ID === null) {
-          alert("Bitte geben sie einen Identifier ein.");
-        } else {
+        const host = urlParams.get('host');
+        const port = urlParams.get('port');
+        if(ID !== "" && ID !== null) {
+          document.getElementById("identifier").defaultValue = ID;
+        }
+        if(host !== "" && host !== null) {
+          document.getElementById("host").defaultValue = host;
+        }
+        if(port !== "" && port !== null) {
+          if(isNaN(port)) {
+            alert("Please enter a valid MQTT port.");
+            throw new Error("invalid port specified.");
+          }
+          document.getElementById("port").defaultValue = port;
+        }
+
+        if (ID !== "" && ID !== null && host !== "" && host !== null && port !== "" && port !== null) {
           var term = new Terminal();
           term.open(document.getElementById('terminal'));
           const id = window.crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
-          const client = new Paho.Client("broker.hivemq.com", 8000, id);
+          const client = new Paho.Client(host, Number(port), id);
+          const history = [];
 
           function onMessageArrived(identifier) {
             return (msg) => {
@@ -30,11 +50,13 @@
                 case "data": {
                   const obj = JSON.parse(msg.payloadString);
                   term.write(obj.data);
+                  history.push(obj);
                   break;
                 }
                 case "resize": {
                   const obj = JSON.parse(msg.payloadString);
                   term.resize(obj.colSize, obj.rowSize)
+                  document.getElementById("clientInfo").textContent = `Connected! Client id: ${id}`
                   break;
                 }
                 case "close": {
