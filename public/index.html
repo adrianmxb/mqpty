@@ -6,18 +6,30 @@
       <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.js"></script>
     </head>
     <body>
-      <form>
-        <label for="host">MQTT Server:</label>
-        <input type="text" id="host" name="host" value="broker.hivemq.com"/>
-        <label for="port">MQTT Port:</label>
-        <input type="text" id="port" name="port" value="8000"/>
-        <label for="identifier">Session Identifier:</label>
-        <input type="text" id="identifier" name="identifier"/>
-        <input type="submit" value="Join"/>
-      </form>
-      <span id="clientInfo">Not connected.</span>
+      <div>
+        <span id="clientInfo">Not connected.</span>
+        <a id="historyDownload" href="#">Download history file</a>
+        <form>
+          <label for="host">MQTT Server:</label>
+          <input type="text" id="host" name="host" value="broker.hivemq.com"/>
+          <label for="port">MQTT Port:</label>
+          <input type="text" id="port" name="port" value="8000"/>
+          <label for="identifier">Session Identifier:</label>
+          <input type="text" id="identifier" name="identifier"/>
+          <input type="submit" value="Join"/>
+        </form>
+      </div>
+      <div>
+        <label for="history"><b>Load history file:</b></label>
+        <input type="file" accept="application/json" id="history" name="history"/>
+        <button id="clearHistory" disabled>Unload history.</button>
+      </div>
       <div id="terminal"></div>
       <script>
+        let term = new Terminal();
+        term.open(document.getElementById('terminal'));
+        let mode = "live";
+        const history = [];
         const urlParams = new URLSearchParams(window.location.search);
         const ID = urlParams.get('identifier');
         const host = urlParams.get('host');
@@ -36,12 +48,41 @@
           document.getElementById("port").defaultValue = port;
         }
 
+        const historyElem = document.getElementById("history");
+        historyElem.onchange = () => {
+          const reader = new FileReader();
+          reader.addEventListener('load', function () {
+            mode = "file";
+            term.reset();
+            const historyData = JSON.parse(reader.result);
+            for(const entry of historyData) {
+              term.write(entry.data);
+            }
+
+            const clearHistory = document.getElementById("clearHistory");
+            clearHistory.onclick = () => {
+              clearHistory.disabled = true;
+              historyElem.value = null;
+              term.reset();
+              for(const entry of history) {
+                term.write(entry.data);
+              }
+              mode = "live";
+            };
+            clearHistory.disabled = false;
+          })
+          reader.readAsText(historyElem.files[0]);
+        }
+
         if (ID !== "" && ID !== null && host !== "" && host !== null && port !== "" && port !== null) {
-          var term = new Terminal();
-          term.open(document.getElementById('terminal'));
           const id = window.crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
           const client = new Paho.Client(host, Number(port), id);
-          const history = [];
+
+          document.getElementById("historyDownload").onclick = () => {
+            const data = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(history));
+            document.getElementById("historyDownload").setAttribute("href", data);
+            document.getElementById("historyDownload").setAttribute("download", `history_${ID}`)
+          };
 
           function onMessageArrived(identifier) {
             return (msg) => {
@@ -49,7 +90,9 @@
               switch (sub) {
                 case "data": {
                   const obj = JSON.parse(msg.payloadString);
-                  term.write(obj.data);
+                  if(mode === "live") {
+                    term.write(obj.data);
+                  }
                   history.push(obj);
                   break;
                 }
