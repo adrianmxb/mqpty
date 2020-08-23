@@ -2,7 +2,7 @@
 * Python3 has to be installed
 
 **Guide:**
-1. pip install -r requirements.txt
+1. pip3 install -r requirements.txt
 2. python3 main.py [command]
 
 **Example:**

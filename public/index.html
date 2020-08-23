@@ -27,16 +27,20 @@
             return (msg) => {
               const sub = msg.topic.split("/")[1];
               switch (sub) {
-                case "data":
-                  term.write(msg.payloadString);
+                case "data": {
+                  const obj = JSON.parse(msg.payloadString);
+                  term.write(obj.data);
                   break;
-                case "resize":
-                  size = msg.payloadString.split('|');
-                  term.resize(Number(size[0]), Number(size[1]));
+                }
+                case "resize": {
+                  const obj = JSON.parse(msg.payloadString);
+                  term.resize(obj.colSize, obj.rowSize)
                   break;
-                case "close":
+                }
+                case "close": {
                   term.writeln("connection to remote terminal closed");
                   break;
+                }
                 default:
                   console.error("unhandled event:");
                   console.error("event: " + sub);
