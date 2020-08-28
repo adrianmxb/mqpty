@@ -7,8 +7,6 @@
     </head>
     <body>
       <div>
-        <span id="clientInfo">Not connected.</span>
-        <a id="historyDownload" href="#">Download history file</a>
         <form>
           <label for="host">MQTT Server:</label>
           <input type="text" id="host" name="host" value="broker.hivemq.com"/>
@@ -25,6 +23,8 @@
         <button id="clearHistory" disabled>Unload history.</button>
       </div>
       <div id="terminal"></div>
+      <span id="clientInfo">Not connected.</span>
+      <a id="historyDownload" href="#">Download history file</a>
       <script>
         let term = new Terminal();
         term.open(document.getElementById('terminal'));
@@ -49,15 +49,40 @@
         }
 
         const historyElem = document.getElementById("history");
+
+        function onloop(array) {
+          const entry = array.shift();
+          setTimeout(() => {
+            switch(entry.type) {
+              case "data": {
+                term.write(entry.data.data);
+                break;
+              }
+              case "resize": {
+                term.resize(entry.data.colSize, entry.data.rowSize)
+              }
+            }
+            term.write(entry.data);
+            if(array.length > 0) {
+              onloop(array);
+            }
+          }, entry.data.hasOwnProperty("timeDelta") ? entry.data.timeDelta : 1);
+        }
+
         historyElem.onchange = () => {
           const reader = new FileReader();
           reader.addEventListener('load', function () {
             mode = "file";
             term.reset();
             const historyData = JSON.parse(reader.result);
+
+            /*
             for(const entry of historyData) {
               term.write(entry.data);
             }
+             */
+
+            onloop(historyData);
 
             const clearHistory = document.getElementById("clearHistory");
             clearHistory.onclick = () => {
@@ -93,13 +118,20 @@
                   if(mode === "live") {
                     term.write(obj.data);
                   }
-                  history.push(obj);
+                  history.push({
+                    type: sub,
+                    data: obj
+                  });
                   break;
                 }
                 case "resize": {
                   const obj = JSON.parse(msg.payloadString);
                   term.resize(obj.colSize, obj.rowSize)
                   document.getElementById("clientInfo").textContent = `Connected! Client id: ${id}`
+                  history.push({
+                    type: sub,
+                    data: obj
+                  });
                   break;
                 }
                 case "close": {

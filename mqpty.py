@@ -64,7 +64,7 @@ class MqptySession:
             data = terminal.CopyData(self.__childFd, self.__stdoutFd)
             data = data.decode("utf-8")
             timeDelta = 0.0
-            currentTime = time.time()
+            currentTime = int(round(time.time() * 1000))
             if len(self.__history) > 0:
                 prevTime = self.__history[-1][1]
                 timeDelta = currentTime - prevTime
