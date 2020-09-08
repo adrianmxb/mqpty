@@ -1,0 +1,175 @@
+<!doctype html>
+  <html>
+    <head>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.css" />
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.js"></script>
+      <link href="restyle.css" rel="stylesheet"/>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    </head>
+    <body>
+      <div>
+        <h1>Terminal Share</h1>
+        <button onclick=menuButton() class="btnmenu"><i class="fa fa-bars"></i>Options</button>
+        <form>
+          <label for="host">MQTT Server:</label>
+          <input type="text" id="host" name="host" value="broker.hivemq.com"/>
+          <label for="port">MQTT Port:</label>
+          <input type="text" id="port" name="port" value="8000"/>
+          <label for="identifier">Session Identifier:</label>
+          <input type="text" id="identifier" name="identifier"/>
+          <input class="btnjoin" type="submit" value="Join"/>
+        </form>
+      </div>
+      <div>
+        <label class="historylabel" for="history"> <i class="fa fa-folder"> Load history file</i></label>
+        <input type="file" accept="application/json" id="history" name="history"/>
+        <button class="btnunload" id="clearHistory" disabled><i class="fa fa-close">Unload history</i></button>
+      </div>
+      <div class="terminal" id="terminal"></div>
+      <span id="clientInfo">Not connected.</span>
+      <a id="historyDownload" href="#">Download history file</a>
+      <script>
+        let term = new Terminal();
+        term.open(document.getElementById('terminal'));
+        let mode = "live";
+        const history = [];
+        const urlParams = new URLSearchParams(window.location.search);
+        const ID = urlParams.get('identifier');
+        const host = urlParams.get('host');
+        const port = urlParams.get('port');
+        if(ID !== "" && ID !== null) {
+          document.getElementById("identifier").defaultValue = ID;
+        }
+        if(host !== "" && host !== null) {
+          document.getElementById("host").defaultValue = host;
+        }
+        if(port !== "" && port !== null) {
+          if(isNaN(port)) {
+            alert("Please enter a valid MQTT port.");
+            throw new Error("invalid port specified.");
+          }
+          document.getElementById("port").defaultValue = port;
+        }
+
+        const historyElem = document.getElementById("history");
+
+        function onloop(array) {
+          const entry = array.shift();
+          setTimeout(() => {
+            switch(entry.type) {
+              case "data": {
+                term.write(entry.data.data);
+                break;
+              }
+              case "resize": {
+                term.resize(entry.data.colSize, entry.data.rowSize)
+              }
+            }
+            term.write(entry.data);
+            if(array.length > 0) {
+              onloop(array);
+            }
+          }, entry.data.hasOwnProperty("timeDelta") ? entry.data.timeDelta : 1);
+        }
+
+        historyElem.onchange = () => {
+          const reader = new FileReader();
+          reader.addEventListener('load', function () {
+            mode = "file";
+            term.reset();
+            const historyData = JSON.parse(reader.result);
+
+            /*
+            for(const entry of historyData) {
+              term.write(entry.data);
+            }
+             */
+
+            onloop(historyData);
+
+            const clearHistory = document.getElementById("clearHistory");
+            clearHistory.onclick = () => {
+              clearHistory.disabled = true;
+              historyElem.value = null;
+              term.reset();
+              for(const entry of history) {
+                term.write(entry.data);
+              }
+              mode = "live";
+            };
+            clearHistory.disabled = false;
+          })
+          reader.readAsText(historyElem.files[0]);
+        }
+
+        if (ID !== "" && ID !== null && host !== "" && host !== null && port !== "" && port !== null) {
+          const id = window.crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
+          const client = new Paho.Client(host, Number(port), id);
+
+          document.getElementById("historyDownload").onclick = () => {
+            const data = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(history));
+            document.getElementById("historyDownload").setAttribute("href", data);
+            document.getElementById("historyDownload").setAttribute("download", `history_${ID}`)
+          };
+
+          function onMessageArrived(identifier) {
+            return (msg) => {
+              const sub = msg.topic.split("/")[1];
+              switch (sub) {
+                case "data": {
+                  const obj = JSON.parse(msg.payloadString);
+                  if(mode === "live") {
+                    term.write(obj.data);
+                  }
+                  history.push({
+                    type: sub,
+                    data: obj
+                  });
+                  break;
+                }
+                case "resize": {
+                  const obj = JSON.parse(msg.payloadString);
+                  term.resize(obj.colSize, obj.rowSize)
+                  document.getElementById("clientInfo").textContent = `Connected! Client id: ${id}`
+                  history.push({
+                    type: sub,
+                    data: obj
+                  });
+                  break;
+                }
+                case "close": {
+                  term.writeln("connection to remote terminal closed");
+                  break;
+                }
+                default:
+                  console.error("unhandled event:");
+                  console.error("event: " + sub);
+              }
+              console.log(msg);
+            }
+          }
+
+          function onConnected() {
+            for (const sub of ["data", "resize", "close"]) {
+              client.subscribe(`${ID}/${sub}`);
+            }
+            client.publish(`${ID}/new`, "ping");
+          }
+
+          client.onConnected = onConnected;
+          client.onMessageArrived = onMessageArrived(ID);
+          client.connect();
+        }
+
+      
+      function menuButton(){
+        if(document.getElementsByTagName("form")[0].style.display == "none"){
+          document.getElementsByTagName("form")[0].style.display = "block";
+        }else{
+          document.getElementsByTagName("form")[0].style.display = "none";
+        }
+      }
+      </script>
+    </body>
+  </html>

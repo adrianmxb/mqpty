@@ -1,0 +1,117 @@
+body{
+    background-color: #333333;
+}
+
+.terminal{
+    padding: 10px 10px 10px 10px;
+    border-radius: 10px;
+    border-color: white;
+    border-style: inset;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    
+}
+
+h1{
+    font-family: Arial, Helvetica, sans-serif;
+    color: white;
+    text-align: center;
+}
+
+form{
+    display: none;
+    margin-bottom: 10px;
+}
+
+label{
+    margin-top: 10px;
+    font-family: Arial, Helvetica, sans-serif;
+    color: white;
+}
+
+.btnmenu{
+    margin-bottom: 10px;
+    border-radius: 5px;
+    background-color: #333333;
+    border-color: white;
+    color: white;
+    border-style: outset;
+    font-size: 15px;
+}
+
+.btnmenu:hover{
+    border-color: white;
+    border-style: inset;
+    color: black;
+    background-color: white;
+    cursor: pointer;
+}
+
+.btnjoin{
+    margin-bottom: 10px;
+    border-radius: 5px;
+    background-color: #333333;
+    border-color: white;
+    color: white;
+    border-style: outset;
+    max-width: 40px;
+}
+
+.btnjoin:hover{
+    border-color: white;
+    border-style: inset;
+    color: black;
+    background-color: white;
+    cursor: pointer;
+}
+
+
+.btnunload{
+    margin-bottom: 10px;
+    border-radius: 5px;
+    background-color: #333333;
+    border-color: white;
+    color: white;
+    border-style: outset;
+   
+}
+
+.btnunload:hover{
+    border-color: white;
+    border-style: inset;
+    color: black;
+    background-color: white;
+    cursor: pointer;
+}
+
+input{
+    background-color: #333333;
+    border-radius: 5px;
+    border-color: white;
+    color: white;
+    transition: width 0.4s ease-in-out;
+}
+
+input:focus{
+    width: 180px;
+}
+
+input[type="file"] {
+    display: none;
+}
+.historylabel{
+    border-radius: 5px;
+    background-color: #333333;
+    border-color: white;
+    color: white; 
+    border-style: solid;
+    border-width: thin;
+}
+
+.historylabel:hover{
+    border-color: white;
+    border-style: inset;
+    color: black;
+    background-color: white;
+    cursor: pointer;
+}
