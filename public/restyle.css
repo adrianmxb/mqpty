@@ -90,6 +90,7 @@ input{
     border-color: white;
     color: white;
     transition: width 0.4s ease-in-out;
+    margin-bottom: 10px;
 }
 
 input:focus{
