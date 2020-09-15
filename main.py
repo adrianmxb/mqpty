@@ -14,5 +14,5 @@ if __name__ == '__main__':
         sys.exit(0)
 
     identifier = secrets.token_urlsafe(32)
-    mqpty = MqptySession(identifier, sys.argv[1:])
+    mqpty = MqptySession(identifier, sys.argv[1:], "broker.hivemq.com", 1883)
     mqpty.wait()
