@@ -4,27 +4,35 @@
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.css" />
       <script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.js"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.js"></script>
+      <link href="restyle.css" rel="stylesheet"/>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     </head>
     <body>
       <div>
+        <h1>Terminal Share</h1>
+        <hr>
+        <button onclick=menuButton() class="btnmenu"><i class="fa fa-bars"></i>Options</button>
         <form>
           <label for="host">MQTT Server:</label>
           <input type="text" id="host" name="host" value="broker.hivemq.com"/>
+          <br>
           <label for="port">MQTT Port:</label>
           <input type="text" id="port" name="port" value="8000"/>
+          <br>
           <label for="identifier">Session Identifier:</label>
           <input type="text" id="identifier" name="identifier"/>
-          <input type="submit" value="Join"/>
+          <input class="btnjoin" type="submit" value="Join"/>
         </form>
       </div>
       <div>
-        <label for="history"><b>Load history file:</b></label>
+        <label class="historylabel" for="history"> <i class="fa fa-folder"> Load history file</i></label>
         <input type="file" accept="application/json" id="history" name="history"/>
-        <button id="clearHistory" disabled>Unload history.</button>
+        <button class="btnunload" id="clearHistory" disabled><i class="fa fa-close">Unload history</i></button>
       </div>
-      <div id="terminal"></div>
+      <div class="terminal" id="terminal"></div>
       <span id="clientInfo">Not connected.</span>
       <a id="historyDownload" href="#">Download history file</a>
+
       <script>
         let term = new Terminal();
         term.open(document.getElementById('terminal'));
@@ -126,8 +134,9 @@
                 }
                 case "resize": {
                   const obj = JSON.parse(msg.payloadString);
-                  term.resize(obj.colSize, obj.rowSize)
-                  document.getElementById("clientInfo").textContent = `Connected! Client id: ${id}`
+                  term.resize(obj.colSize, obj.rowSize);
+                  document.getElementById("clientInfo").textContent = `Connected! Client id: ${id}`;
+                  
                   history.push({
                     type: sub,
                     data: obj
@@ -157,6 +166,15 @@
           client.onMessageArrived = onMessageArrived(ID);
           client.connect();
         }
+
+      
+      function menuButton(){
+        if(document.getElementsByTagName("form")[0].style.display == "none"){
+          document.getElementsByTagName("form")[0].style.display = "block";
+        }else{
+          document.getElementsByTagName("form")[0].style.display = "none";
+        }
+      }
       </script>
     </body>
   </html>
