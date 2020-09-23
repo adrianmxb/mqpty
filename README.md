@@ -1,3 +1,5 @@
+*A lightweight terminal sharing application.*
+
 **Requirements:**
 * Python3 has to be installed
 
